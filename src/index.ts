@@ -4,6 +4,7 @@ interface VNode {
     children : (VNode | string)[]
 }
 
+
 // create the vnode
 function createElement(type: string, props: any, ...children: (VNode | string) []) : VNode { 
     return { type, props,children}
@@ -116,15 +117,52 @@ function updateAttributes(element: HTMLElement, oldProps: any, newProps: any) {
     });
 }
 
+// reactive dom , react to state changes
+
+const stateStore: { [key: string]: any } = {};
+let stateIndex = 0;
+
+function useState<T>(initialValue: T): [() => T, (newValue: T) => void] {
+    const key = stateIndex;
+    if (!(key in stateStore)) {
+        stateStore[key] = initialValue;
+    }
+
+    const getState = () => stateStore[key];
+    const setState = (newValue: T) => {
+        stateStore[key] = newValue;
+        reRender(); // Re-render UI
+    };
+
+    
+    return [getState, setState];
+}
 
 
 
 // next create vNOde and render it
-const node = createElement("div", {"id" : "header"}, 
-    createElement("h1", {}, "hello this vDOM"),
-    createElement("button", {"onClick" : () => {alert("here");}}, "Click me")
-)
 
-document.body.appendChild(render(node))
+function App(): VNode {
+    let [getCount, setCount] = useState(0); 
+    console.log(getCount())
+    const node = createElement("div", {"id" : "header"}, 
+        createElement("h1", {}, "hello this vDOM"),
+        createElement("p", {}, "count " + getCount()),
+        createElement("button", {"onClick" : () => {setCount(getCount() + 1)}}, "increment")
+    )
+    return node;        
+}
 
-patch(render(node), "hello", "hello", 0) 
+const root: HTMLElement | null = document.getElementById('app');
+let vTree: VNode = App();
+
+function reRender() { 
+    const newVNode = App();
+    let rootVNode = vTree;
+    console.log(document.body)
+    patch(document.body, rootVNode, newVNode);
+    rootVNode = newVNode;
+}
+
+console.log("hello");
+if(root) root.appendChild(render(vTree));
